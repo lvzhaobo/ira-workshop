@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     const input: CreateSkillInput = {
       name: skillInfo.name,
       description: skillInfo.description,
+      content: skillInfo.skillMdContent,
       author: skillInfo.author,
       version: skillInfo.version,
       tags: skillInfo.tags,

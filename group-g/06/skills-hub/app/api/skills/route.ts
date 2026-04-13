@@ -61,9 +61,13 @@ export async function POST(request: NextRequest) {
       body: body.content || '',
     });
 
+    // 读取生成的 SKILL.md 内容
+    const skillMdContent = GitHelper.readSkillFile(dirName);
+
     const input: CreateSkillInput = {
       name: body.name,
       description: body.description,
+      content: skillMdContent || body.content || '',
       author: body.author,
       version: body.version,
       tags: Array.isArray(body.tags) ? body.tags : body.tags ? body.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : undefined,

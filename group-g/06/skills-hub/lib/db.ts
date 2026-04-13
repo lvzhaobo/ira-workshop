@@ -41,6 +41,44 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_skill_source ON Skill(sourceType);
   `);
 
+  // 迁移：确保 content 字段可以为 NULL（移除可能存在的 NOT NULL 约束）
+  try {
+    // 检查 content 是否有 NOT NULL 约束
+    const tableInfo = db.pragma("table_info('Skill')") as Array<{name: string, notnull: number}>;
+    const contentColumn = tableInfo.find(col => col.name === 'content');
+    if (contentColumn && contentColumn.notnull === 1) {
+      // 如果有 NOT NULL 约束，需要重建表
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        BEGIN TRANSACTION;
+        ALTER TABLE Skill RENAME TO Skill_old;
+        CREATE TABLE Skill (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT,
+          content TEXT,
+          author TEXT,
+          version TEXT DEFAULT '1.0.0',
+          tags TEXT,
+          category TEXT,
+          usageCount INTEGER DEFAULT 0,
+          sourceType TEXT DEFAULT 'manual',
+          gitUrl TEXT,
+          gitPath TEXT,
+          filePath TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        INSERT INTO Skill SELECT * FROM Skill_old;
+        DROP TABLE Skill_old;
+        COMMIT;
+        PRAGMA foreign_keys=on;
+      `);
+    }
+  } catch (e) {
+    console.error('Migration error:', e);
+  }
+
   // 迁移：为已存在的表添加 filePath 列（如果不存在）
   try {
     db.exec('ALTER TABLE Skill ADD COLUMN filePath TEXT');
